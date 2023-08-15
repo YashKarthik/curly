@@ -6,8 +6,9 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <string.h>
 
-#define MAXDATASIZE 100
+#define MAXDATASIZE 10000
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
@@ -73,7 +74,12 @@ int main(int argc, char *argv[]) {
   }
 
   char sendBuff[MAXDATASIZE];
-  snprintf(sendBuff, MAXDATASIZE, "GET / HTTP/1.0\r\nHost: %s\r\n", urlToGet);
+  snprintf(sendBuff, MAXDATASIZE, 
+     "GET / HTTP/1.0\r\n"
+     "Host: %s\r\n"
+     "Content-type: text/html\r\n"
+     "\r\n", urlToGet);
+
   send(connectedSockfd, sendBuff, sizeof(sendBuff) - 1, 0);
 
   char recvBuff[MAXDATASIZE];
@@ -85,8 +91,9 @@ int main(int argc, char *argv[]) {
 
   recvBuff[bytesRecvd] = '\0';
   printf("Received:\n%s", recvBuff);
+  printf("\n------------------------------------------------\n");
 
   freeaddrinfo(result);
   close(connectedSockfd);
-;  return 0;
+  return 0;
 }

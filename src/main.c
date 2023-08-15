@@ -56,10 +56,11 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
-    if (connect(sockfd, currResult->ai_addr, currResult->ai_addrlen)) {
+    if (connect(sockfd, currResult->ai_addr, currResult->ai_addrlen) == -1) {
       close(sockfd);
       printf("Connection failed: %s", ipString);
       printf("Reason: %s", gai_strerror(errno));
+      continue;
     }
 
     printf("Connected to %s\n", ipString);

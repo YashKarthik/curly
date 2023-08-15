@@ -7,6 +7,8 @@
 #include <sys/socket.h>
 #include <errno.h>
 
+#define MAXDATASIZE 100
+
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     printf("Invalid number of arguments.\n");
@@ -65,6 +67,26 @@ int main(int argc, char *argv[]) {
     break;
   }
 
+  if (currResult == NULL) {
+    printf("Failed to connect");
+    return 1;
+  }
+
+  char sendBuff[MAXDATASIZE];
+  snprintf(sendBuff, MAXDATASIZE, "GET / HTTP/1.0\r\nHost: %s\r\n", urlToGet);
+  send(connectedSockfd, sendBuff, sizeof(sendBuff) - 1, 0);
+
+  char recvBuff[MAXDATASIZE];
+  int bytesRecvd = recv(connectedSockfd, recvBuff, MAXDATASIZE-1, 0);
+  if (bytesRecvd == -1) {
+    printf("Failed recv\n");
+    return 1;
+  }
+
+  recvBuff[bytesRecvd] = '\0';
+  printf("Received:\n%s", recvBuff);
+
+  freeaddrinfo(result);
   close(connectedSockfd);
-  return 0;
+;  return 0;
 }

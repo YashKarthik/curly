@@ -1,9 +1,11 @@
-#include <arpa/inet.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <errno.h>
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
@@ -12,7 +14,7 @@ int main(int argc, char *argv[]) {
 
   char *urlToGet = argv[1];
 
-  printf("Fetching %s\n...\n", urlToGet);
+  printf("Fetching %s ...\n", urlToGet);
 
   struct addrinfo hints = {
     .ai_family = AF_UNSPEC,
@@ -23,20 +25,20 @@ int main(int argc, char *argv[]) {
 
   int status = getaddrinfo(urlToGet, "http", &hints, &result);
   if (status != 0) {
-    // fail
     printf("getaddrinfo error: %s\n", gai_strerror(status));
     return 1;
   }
 
-  struct addrinfo *currResult = result;
-  while (1) {
+  struct addrinfo *currResult;
+  int connectedSockfd;
+  struct addrinfo *connectedAddr;
+  for (currResult = result; result != NULL; currResult = currResult->ai_next) {
     if (currResult == NULL) break;
 
     void* addr;
     char ipString[INET6_ADDRSTRLEN];
 
     if (currResult->ai_family == AF_INET) {
-      // IPv4
       addr = &((struct sockaddr_in *)currResult->ai_addr)->sin_addr;
     } else {
       addr = &((struct sockaddr_in6 *)currResult->ai_addr)->sin6_addr;
@@ -44,8 +46,25 @@ int main(int argc, char *argv[]) {
 
     inet_ntop(currResult->ai_family, addr, ipString, sizeof ipString);
     printf("%s\n", ipString);
-    currResult = currResult->ai_next;
+
+    int sockfd = socket(currResult->ai_family, currResult->ai_socktype, currResult->ai_protocol);
+    if (sockfd == -1) {
+      printf("socket error\n");
+      continue;
+    }
+
+    if (connect(sockfd, currResult->ai_addr, currResult->ai_addrlen)) {
+      close(sockfd);
+      printf("Connection failed: %s", ipString);
+      printf("Reason: %s", gai_strerror(errno));
+    }
+
+    printf("Connected to %s\n", ipString);
+    connectedSockfd = sockfd;
+    connectedAddr = currResult;
+    break;
   }
-  
+
+  close(connectedSockfd);
   return 0;
 }
